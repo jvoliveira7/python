@@ -13,27 +13,39 @@ class UDPServer:
         """Envia mensagem para todos os clientes exceto o remetente"""
         for client in self.clients:
             if client != sender:
-                self.socket.sendto(message, client)
+                try:
+                    self.socket.sendto(message, client)
+                except Exception as e:
+                    print(f"⚠️ Erro ao enviar para {client}: {e}")
+                    self.clients.discard(client)
 
     def run(self):
         """Executa o loop principal do servidor"""
         while True:
             try:
-            
                 data, addr = self.socket.recvfrom(1024)
                 
-               
+                # Verifica se é uma mensagem de registro (vazia)
+                if not data:
+                    if addr not in self.clients:
+                        print(f"🔌 Novo cliente conectado: {addr}")
+                        self.clients.add(addr)
+                    continue
+                
+                # Adiciona novo cliente se não estiver na lista
                 if addr not in self.clients:
                     print(f"🔌 Novo cliente conectado: {addr}")
                     self.clients.add(addr)
-         
+                
+                # Processa mensagem "sair"
                 if data.decode().lower() == 'sair':
                     print(f"🚪 Cliente desconectado: {addr}")
                     self.clients.discard(addr)
-                else:
-             
-                    print(f"📩 Mensagem de {addr}: {data.decode()}")
-                    self.broadcast(data, addr)
+                    continue
+                
+                # Exibe mensagem recebida e faz broadcast
+                print(f"📩 Mensagem de {addr}: {data.decode()}")
+                self.broadcast(data, addr)
                     
             except Exception as e:
                 print(f"⚠️ Erro: {e}")
